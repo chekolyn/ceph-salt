@@ -93,10 +93,27 @@ populate_mon:
                  --keyring {{ secret }}
     - unless: test -d /var/lib/ceph/mon/{{ conf.cluster }}-{{ conf.host }}
 
+# Activate monitor
+{% if grains['os'] == 'Ubuntu' -%}
+/var/lib/ceph/mon/{{ conf.cluster }}-{{ conf.host }}/upstart:
+  file.touch: []
+{% else %}
+/var/lib/ceph/mon/{{ conf.cluster }}-{{ conf.host }}/done:
+  file.touch: []
+/var/lib/ceph/mon/{{ conf.cluster }}-{{ conf.host }}/sysvinit:
+  file.touch: []
+{% endif -%}
+
 start_mon:
   cmd.run:
+    {% if grains['os'] == 'Ubuntu' -%}
     - name: start ceph-mon id={{ conf.host }} cluster={{ conf.cluster }}
     - unless: status ceph-mon id={{ conf.host }} cluster={{ conf.cluster }}
+    {% else -%}
+    - name: /etc/init.d/ceph start mon.{{ conf.host }}
+    - unless: /etc/init.d/ceph status mon.{{ conf.host }}
+    {% endif -%}
+    - timeout: 30
     - require:
       - cmd: populate_mon
 
@@ -113,6 +130,3 @@ cp.push {{ conf.bootstrap_osd_keyring }}:
     - path: {{ conf.bootstrap_osd_keyring }}
     - watch:
       - cmd: osd_keyring_wait
-
-/var/lib/ceph/mon/{{ conf.cluster }}-{{ conf.host }}/upstart:
-  file.touch: []

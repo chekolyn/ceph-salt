@@ -7,16 +7,16 @@ nodes:
       - ceph-osd
       - ceph-mon
     devs:
-      sdc:
-        journal: sdb
-      sdd:
-        journal: sdb
+      vdc:
+        journal: vdb
+      vdd:
+        journal: vdb
   node02:
     roles:
       - ceph-osd
       - ceph-mon
     devs:
-      sdc:
-        journal: sdb
-      sdd:
-        journal: sdb
+      vdc:
+        journal: vdb
+      vdd:
+        journal: vdb

@@ -26,6 +26,13 @@ cp.get_file {{ mon }}{{ conf.bootstrap_osd_keyring }}:
 {% if dev -%}
 {% set journal = salt['pillar.get']('nodes:' + conf.host + ':devs:' + dev + ':journal') -%}
 
+# There is a bug on ceph-disk prepare:
+# http://tracker.ceph.com/issues/10983
+disk_zap_journal {{ dev }} {{ journal }}:
+  cmd.run:
+    - name: ceph-disk zap /dev/{{ journal }}
+    - unless: parted --script /dev/{{ journal }} print | grep 'ceph journal'
+
 disk_prepare {{ dev }}:
   cmd.run:
     - name: |
@@ -44,6 +51,12 @@ disk_activate {{ dev }}1:
 {% endif -%}
 {% endfor -%}
 
+{% if grains['os'] == 'Ubuntu' -%}
 start ceph-osd-all:
   cmd.run:
     - onlyif: initctl list | grep "ceph-osd-all stop/waiting"
+{% else %}
+start_ceph_osd_all:
+  cmd.run:
+    - name: /etc/init.d/ceph start osd
+{% endif -%}

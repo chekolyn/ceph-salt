@@ -1,8 +1,8 @@
 ceph:
-  version: firefly
+  version: hammer
   cluster_name: ceph
   global:
-    cluster_network: 192.168.36.0/24
+    cluster_network: 192.168.33.0/24
     fsid: 294bc494-81ba-4c3c-ac5d-af7b3442a2a5
     public_network: 192.168.33.0/24
   client:
@@ -24,6 +24,6 @@ ceph:
     pool_default_min_size: 1
     pool_default_pg_num: 128
     pool_default_pgp_num: 128
-    pool_default_size: 3
+    pool_default_size: 2
   mon:
     interface: eth1

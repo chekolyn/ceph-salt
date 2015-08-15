@@ -1,1 +1,6 @@
-vagrant/.vagrant
+*.swp
+*.swo
+*~
+**.vagrant
+*.project
+.pydevproject

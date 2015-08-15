@@ -1,0 +1,31 @@
+# Example of the vagrant nugrant plugin file: ~/vagrantuser
+
+# Localhost example:
+libvirt:
+  driver: "kvm"
+  memory: "2048"
+  cpus:    "4"
+  nested: "True"
+  cpu_mode: "host-model"
+  uri: "qemu+unix:///system"
+  host: ""
+  username: ""
+  password: ""
+  connect_via_ssh: False
+  storage_pool_name: "default"
+
+
+# Remote host example:
+libvirt:
+  driver: "kvm"
+  memory: "8192"
+  cpus:    "4"
+  nested: "True"
+  cpu_mode: "host-model"
+  host: "remotehost.example.com"
+  username: "username"
+  connect_via_ssh: true
+  #socket: "/var/run/libvirt/libvirt-sock"
+  storage_pool_name: "ramdisk"
+  management_network_name: "vagrant-libvirt-mgmt"
+  management_network_address: "192.168.120.0/24"

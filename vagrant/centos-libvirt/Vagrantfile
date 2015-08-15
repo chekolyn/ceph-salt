@@ -1,0 +1,155 @@
+# vi: set ft=ruby :
+
+# This will configure the libvirt hypervisor settings
+# NOTE: Using Vagrant nugrant plugin to abstract the hipervisor settings
+# Load common config.libvirt.rb
+begin
+  load '../common/config.libvirt.rb'
+rescue LoadError
+  # ignore
+end
+
+Vagrant.configure("2") do |config|
+
+  config.vm.box = "uvsmtid/centos-7.0-minimal"
+  config.vm.box_url = "https://atlas.hashicorp.com/uvsmtid/boxes/centos-7.0-minimal/versions/1.0.0/providers/libvirt.box"
+
+  # Centos7 Disable Firewall
+  config.vm.provision "shell", inline: "systemctl disable firewalld",
+    run: "always"
+  config.vm.provision "shell", inline: "systemctl stop firewalld",
+    run: "always"
+
+  # Configure eth0 via script, will disable NetworkManager and enable legacy network daemon:
+  config.vm.provision "shell", path: "../common/disable_network_manager.sh"
+
+  ### NOTE:Hypervisor configuration abstracted at: "config.libvirt.rb" ###
+  ########################################################################
+
+  ### VMs definitions START ####
+  config.vm.define "master", primary: true do |node|
+
+    node.vm.hostname = "master"
+
+    # Openstack Network for Admin/Public/Mgmt
+    node.vm.network :private_network, type: "static", ip: "192.168.33.10",
+      libvirt__network_name: "ceph-net-01",
+      libvirt__netmask: "255.255.255.0",
+      libvirt__dhcp_enabled: true
+
+    # Configure SALT info from local gitrepo:
+    node.vm.synced_folder "../../salt/", "/srv/salt", type: "rsync"
+    node.vm.synced_folder "pillar/", "/srv/pillar", type: "rsync"
+
+    # salt-master provisioning
+    node.vm.provision :salt do |salt|
+      salt.install_master = true
+      salt.always_install = true
+      salt.master_config = "configs/master"
+      salt.run_highstate = false
+      salt.master_key = '../common/keys/master.pem'
+      salt.master_pub = '../common/keys/master.pub'
+
+      salt.minion_config = "configs/minion"
+      salt.minion_key = '../common/keys/master.pem'
+      salt.minion_pub = '../common/keys/master.pub'
+
+      salt.seed_master = {
+        'master' => '../common/keys/master.pub',
+        'node01' => '../common/keys/node01.pub',
+        'node02' => '../common/keys/node02.pub',
+        'node03' => '../common/keys/node03.pub'
+      }
+    end
+  end
+
+  ## NODES ##
+  config.vm.define "node01" do |node|
+    node.vm.hostname = "node01"
+    node.vm.network :private_network, ip: "192.168.33.20",
+      libvirt__network_name: "ceph-net-01",
+      libvirt__netmask: "255.255.255.0",
+      libvirt__dhcp_enabled: true
+
+    # Additional NIC for cluster network
+    node.vm.network :private_network, ip: "192.168.36.20",
+      libvirt__network_name: "ceph-net-02",
+      libvirt__netmask: "255.255.255.0",
+      libvirt__dhcp_enabled: true
+
+    # Configure extra drives, assume they all exist if the first one is present:
+    # Add 3 additional 4GB drives
+    node.vm.provider :libvirt do |libvirt|
+      libvirt.storage :file, :size => '10G'
+      libvirt.storage :file, :size => '40G'
+      libvirt.storage :file, :size => '40G'
+    end
+
+    # salt-minion provisioning
+    node.vm.provision :salt do |salt|
+      salt.minion_config = "configs/minion"
+      salt.minion_key = "../common/keys/#{node.vm.hostname}.pem"
+      salt.minion_pub = "../common/keys/#{node.vm.hostname}.pub"
+    end
+  end
+
+  config.vm.define "node02" do |node|
+    node.vm.hostname = "node02"
+    node.vm.network :private_network, ip: "192.168.33.30",
+      libvirt__network_name: "ceph-net-01",
+      libvirt__netmask: "255.255.255.0",
+      libvirt__dhcp_enabled: true
+
+    # Additional NIC for cluster network
+    node.vm.network :private_network, ip: "192.168.36.30",
+      libvirt__network_name: "ceph-net-02",
+      libvirt__netmask: "255.255.255.0",
+      libvirt__dhcp_enabled: true
+
+    # Configure extra drives, assume they all exist if the first one is present:
+    # Add 3 additional 4GB drives
+    node.vm.provider :libvirt do |libvirt|
+      libvirt.storage :file, :size => '10G'
+      libvirt.storage :file, :size => '40G'
+      libvirt.storage :file, :size => '40G'
+    end
+
+    # salt-minion provisioning
+    node.vm.provision :salt do |salt|
+      salt.minion_config = "configs/minion"
+      salt.minion_key = "../common/keys/#{node.vm.hostname}.pem"
+      salt.minion_pub = "../common/keys/#{node.vm.hostname}.pub"
+    end
+  end
+
+  config.vm.define "node03" do |node|
+    node.vm.hostname = "node03"
+    node.vm.network :private_network, ip: "192.168.33.40",
+      libvirt__network_name: "ceph-net-01",
+      libvirt__netmask: "255.255.255.0",
+      libvirt__dhcp_enabled: true
+
+    # Additional NIC for cluster network
+    node.vm.network :private_network, ip: "192.168.36.40",
+      libvirt__network_name: "ceph-net-02",
+      libvirt__netmask: "255.255.255.0",
+      libvirt__dhcp_enabled: true
+
+    # Configure extra drives, assume they all exist if the first one is present:
+    # Add 3 additional 4GB drives
+    node.vm.provider :libvirt do |libvirt|
+      libvirt.storage :file, :size => '10G'
+      libvirt.storage :file, :size => '40G'
+      libvirt.storage :file, :size => '40G'
+    end
+
+    # salt-minion provisioning
+    node.vm.provision :salt do |salt|
+      salt.minion_config = "configs/minion"
+      salt.minion_key = "../common/keys/#{node.vm.hostname}.pem"
+      salt.minion_pub = "../common/keys/#{node.vm.hostname}.pub"
+    end
+  end
+  ### VMs definitions END ####
+
+end
