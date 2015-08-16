@@ -1,5 +1,4 @@
 nodes:
-  master:
   node01:
     roles:
       - ceph-osd
